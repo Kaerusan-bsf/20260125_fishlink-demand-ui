@@ -1,0 +1,148 @@
+'use client';
+
+import {FormEvent, useMemo, useState} from 'react';
+
+type Offer = {
+  id: string;
+  farmerName: string;
+  distanceKm: number;
+  rating: number;
+  pricePerKgUsd: number;
+};
+
+const mockOffers: Offer[] = [
+  {id: 'offer-1', farmerName: 'Sokha Farm', distanceKm: 4.2, rating: 5, pricePerKgUsd: 5.8},
+  {id: 'offer-2', farmerName: 'Mekong Fresh Pond', distanceKm: 8.6, rating: 4, pricePerKgUsd: 5.2},
+  {id: 'offer-3', farmerName: 'Tonle Sap Growers', distanceKm: 12.1, rating: 4, pricePerKgUsd: 4.9}
+];
+
+const fishTypes = ['Tilapia', 'Snakehead', 'Catfish'];
+const sizes = ['Small', 'Medium', 'Large'];
+const timeSlots = ['Today AM', 'Today PM', 'Tomorrow AM', 'Tomorrow PM'];
+const guttingOptions = ['No preference', 'Required', 'Not needed'];
+
+function renderStars(rating: number) {
+  return '★'.repeat(rating) + '☆'.repeat(Math.max(0, 5 - rating));
+}
+
+export default function ExperimentDemandPage() {
+  const [step, setStep] = useState<1 | 2>(1);
+  const [feedbackByOfferId, setFeedbackByOfferId] = useState<Record<string, string>>({});
+
+  const defaultGutting = useMemo(() => guttingOptions[0], []);
+
+  function handleRequestSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setStep(2);
+  }
+
+  function handleAction(offerId: string, action: 'accepted' | 'rejected') {
+    const message = action === 'accepted' ? 'Accepted (demo only)' : 'Rejected (demo only)';
+    setFeedbackByOfferId((current) => ({...current, [offerId]: message}));
+  }
+
+  return (
+    <main>
+      <div className="section-title">
+        <h2>Demand model (レストラン投稿)</h2>
+        <span className="badge">Experiment / UI test only</span>
+      </div>
+
+      {step === 1 ? (
+        <div className="card">
+          <h3>STEP 1: Restaurant request form</h3>
+          <p className="muted">UI-only. This form does not save any data.</p>
+          <form onSubmit={handleRequestSubmit}>
+            <label>
+              Fish type
+              <select name="fishType" required defaultValue={fishTypes[0]}>
+                {fishTypes.map((fishType) => (
+                  <option key={fishType} value={fishType}>
+                    {fishType}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Size (optional)
+              <select name="size" defaultValue="">
+                <option value="">Not specified</option>
+                {sizes.map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Quantity (kg)
+              <input name="quantity" type="number" min="1" step="1" required />
+            </label>
+
+            <label>
+              Date/time
+              <select name="dateTime" required defaultValue={timeSlots[0]}>
+                {timeSlots.map((timeSlot) => (
+                  <option key={timeSlot} value={timeSlot}>
+                    {timeSlot}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Location
+              <input name="location" type="text" required placeholder="e.g. Phnom Penh, Toul Kork" />
+            </label>
+
+            <label>
+              Gutting (optional)
+              <select name="gutting" defaultValue={defaultGutting}>
+                {guttingOptions.map((guttingOption) => (
+                  <option key={guttingOption} value={guttingOption}>
+                    {guttingOption}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <button type="submit">Preview mock offers</button>
+          </form>
+        </div>
+      ) : (
+        <div className="grid">
+          <div className="card">
+            <h3>STEP 2: Mock offers</h3>
+            <p className="muted">3 dummy offers generated on the client side.</p>
+          </div>
+
+          {mockOffers.map((offer) => (
+            <div key={offer.id} className="card">
+              <h3>{offer.farmerName}</h3>
+              <p className="muted">Distance: {offer.distanceKm.toFixed(1)} km</p>
+              <p className="muted">Rating: {renderStars(offer.rating)}</p>
+              <p className="muted">Price: ${offer.pricePerKgUsd.toFixed(2)}/kg</p>
+              <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>
+                <button type="button" onClick={() => handleAction(offer.id, 'accepted')}>
+                  Accept
+                </button>
+                <button type="button" className="secondary" onClick={() => handleAction(offer.id, 'rejected')}>
+                  Reject
+                </button>
+              </div>
+              {feedbackByOfferId[offer.id] ? <p className="notice">{feedbackByOfferId[offer.id]}</p> : null}
+            </div>
+          ))}
+
+          <div>
+            <button type="button" className="secondary" onClick={() => setStep(1)}>
+              Back to edit request
+            </button>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
