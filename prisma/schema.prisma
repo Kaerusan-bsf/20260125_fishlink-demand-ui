@@ -1,0 +1,195 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PriceType {
+  FIXED
+  TIERED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  role      String   // "RESTAURANT" | "FARMER"
+  userId    String   @unique
+  password  String
+  profile   Profile?
+  createdAt DateTime @default(now())
+
+  // relations（逆向き）
+  listings          Listing[]
+  restaurantOrders  Order[]   @relation("restaurantOrders")
+  farmerOrders      Order[]   @relation("farmerOrders")
+  notifications     Notification[]
+  sessions          Session[]
+  reviewsGiven      Review[]  @relation("reviewsGiven")
+  reviewsReceived   Review[]  @relation("reviewsReceived")
+}
+
+
+model Profile {
+  id           String @id @default(cuid())
+  userId       String @unique
+  user         User   @relation(fields: [userId], references: [id])
+  name         String
+  entityName   String
+  phone        String
+  googleMapUrl String
+  lat          Float?
+  lng          Float?
+  province     String?
+  district     String?
+  updatedAt    DateTime @updatedAt
+}
+
+model Listing {
+  id                String   @id @default(cuid())
+  requestId         String   @unique @default(cuid())
+  priceType         PriceType @default(FIXED)
+  fixedPriceKhrPerKg Int?
+  farmerId          String
+  farmer            User     @relation(fields: [farmerId], references: [id])
+  fishType          String
+  basePricePerKg    Float
+  guttingAvailable  Boolean
+  guttingPricePerKg Float
+  deliveryAvailable Boolean
+  freeDeliveryMinKg Float?
+  minOrderKg        Float?
+  isActive          Boolean  @default(true)
+  memo              String?
+  photoUrl          String?
+  updatedAt         DateTime @updatedAt
+
+  deliveryFeeTiers  DeliveryFeeTier[]
+  sizePriceTiers    ListingSizePriceTier[]
+  orders            Order[]   // ← これを追加
+}
+
+
+model DeliveryFeeTier {
+  id        String  @id @default(cuid())
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id])
+  label     String   // "0-5km" など
+  fee       Float
+  sortOrder Int
+}
+
+model ListingSizePriceTier {
+  id               String  @id @default(cuid())
+  listingId        String
+  listing          Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  minHeadPerKg     Int
+  maxHeadPerKg     Int
+  priceKhrPerKg    Int
+  sortOrder        Int
+
+  @@unique([listingId, sortOrder])
+}
+
+model Order {
+  id                    String   @id @default(cuid())
+  requestId             String   @unique @default(cuid())
+  status                String   // "REQUESTED" | "EXPIRED" | "ACCEPTED" etc
+  restaurantId          String
+  farmerId              String
+  listingId             String
+
+  restaurant            User @relation("restaurantOrders", fields: [restaurantId], references: [id])
+  farmer                User @relation("farmerOrders", fields: [farmerId], references: [id])
+  listing               Listing @relation(fields: [listingId], references: [id])
+
+  quantityKg            Float
+  sizeRequestText       String
+  timeBand              String   // "MORNING" | "AFTERNOON" | "NIGHT"
+  timeDetail            String?
+  memo                  String?
+  guttingRequested      Boolean
+  deliveryRequested     Boolean
+
+  restaurantPhoneSnap   String
+  restaurantMapSnap     String
+  farmerPhoneSnap       String
+  farmerMapSnap         String
+  handoffMapSnap        String
+
+  basePricePerKgSnap    Float
+  guttingPricePerKgSnap Float
+
+  pricingVersionSnap    String?
+  alphaRateSnap         Float?
+  betaRateSnap          Float?
+  betaDiscountRateSnap  Float?
+
+  displayUnitPriceSnap  Float?
+  fishSubtotalSnap      Float?
+  betaFeeSnap           Float?
+  betaDiscountSnap      Float?
+
+  deliveryFeeFinal      Float?
+  finalTotal            Float?
+
+  rejectReason          String?
+  rejectNote            String?
+
+  paymentStatus         String   @default("UNPAID")
+  paidAt                DateTime?
+
+  requestedDate         String?   // "YYYY-MM-DD"
+
+  expiresAt             DateTime?
+  createdAt             DateTime @default(now())
+
+  reviews               Review[]
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  orderId    String?
+  titleKey   String
+  bodyKey    String
+  paramsJson String?  // JSON文字列として保存
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model Session {
+  id        String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model PricingConfig {
+  id               String   @id @default(cuid())
+  pricingVersion   String   @unique
+  alphaRate        Float
+  betaRate         Float
+  betaDiscountRate Float    @default(0)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  orderId    String
+  fromUserId String
+  toUserId   String
+  rating     Int?
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  order      Order    @relation(fields: [orderId], references: [id])
+  fromUser   User     @relation("reviewsGiven", fields: [fromUserId], references: [id])
+  toUser     User     @relation("reviewsReceived", fields: [toUserId], references: [id])
+
+  @@unique([orderId, fromUserId])
+}
