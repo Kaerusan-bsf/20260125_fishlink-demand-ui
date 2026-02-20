@@ -1,6 +1,6 @@
 'use client';
 
-import {FormEvent, useMemo, useState} from 'react';
+import {FormEvent, useState} from 'react';
 
 type Offer = {
   id: string;
@@ -16,11 +16,6 @@ const mockOffers: Offer[] = [
   {id: 'offer-3', farmerName: 'Tonle Sap Growers', distanceKm: 12.1, rating: 4, pricePerKgUsd: 4.9}
 ];
 
-const fishTypes = ['Tilapia', 'Snakehead', 'Catfish'];
-const sizes = ['Small', 'Medium', 'Large'];
-const timeSlots = ['Today AM', 'Today PM', 'Tomorrow AM', 'Tomorrow PM'];
-const guttingOptions = ['No preference', 'Required', 'Not needed'];
-
 function renderStars(rating: number) {
   return '★'.repeat(rating) + '☆'.repeat(Math.max(0, 5 - rating));
 }
@@ -28,8 +23,6 @@ function renderStars(rating: number) {
 export default function ExperimentDemandPage() {
   const [step, setStep] = useState<1 | 2>(1);
   const [feedbackByOfferId, setFeedbackByOfferId] = useState<Record<string, string>>({});
-
-  const defaultGutting = useMemo(() => guttingOptions[0], []);
 
   function handleRequestSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -55,25 +48,12 @@ export default function ExperimentDemandPage() {
           <form onSubmit={handleRequestSubmit}>
             <label>
               Fish type
-              <select name="fishType" required defaultValue={fishTypes[0]}>
-                {fishTypes.map((fishType) => (
-                  <option key={fishType} value={fishType}>
-                    {fishType}
-                  </option>
-                ))}
-              </select>
+              <input name="fishType" type="text" required placeholder="e.g. Tilapia" />
             </label>
 
             <label>
-              Size (optional)
-              <select name="size" defaultValue="">
-                <option value="">Not specified</option>
-                {sizes.map((size) => (
-                  <option key={size} value={size}>
-                    {size}
-                  </option>
-                ))}
-              </select>
+              Size
+              <input name="size" type="text" required placeholder="8-10 head/kg" />
             </label>
 
             <label>
@@ -82,30 +62,38 @@ export default function ExperimentDemandPage() {
             </label>
 
             <label>
-              Date/time
-              <select name="dateTime" required defaultValue={timeSlots[0]}>
-                {timeSlots.map((timeSlot) => (
-                  <option key={timeSlot} value={timeSlot}>
-                    {timeSlot}
-                  </option>
-                ))}
+              Requested date
+              <input name="requestedDate" type="date" required />
+            </label>
+
+            <label>
+              Requested time (optional)
+              <input
+                name="requestedTime"
+                type="text"
+                placeholder="e.g. 8:00 AM or 17:30"
+              />
+            </label>
+
+            <label>
+              Delivery option
+              <select name="deliveryOption" required defaultValue="Delivery">
+                <option value="Delivery">Delivery</option>
+                <option value="Pickup">Pickup</option>
+              </select>
+            </label>
+
+            <label>
+              Gutting option
+              <select name="gutting" required defaultValue="Yes">
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
               </select>
             </label>
 
             <label>
               Location
               <input name="location" type="text" required placeholder="e.g. Phnom Penh, Toul Kork" />
-            </label>
-
-            <label>
-              Gutting (optional)
-              <select name="gutting" defaultValue={defaultGutting}>
-                {guttingOptions.map((guttingOption) => (
-                  <option key={guttingOption} value={guttingOption}>
-                    {guttingOption}
-                  </option>
-                ))}
-              </select>
             </label>
 
             <button type="submit">Preview mock offers</button>
